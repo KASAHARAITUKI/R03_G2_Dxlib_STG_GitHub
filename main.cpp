@@ -1,7 +1,10 @@
 // ヘッダファイルの読み込み
-#include "game.h"		// ゲーム全体のヘッダファイル
-#include "keyboard.h"	// キーボードの処理
-#include "FPS.h"		// FPSの処理
+#include "game.h"				// ゲーム全体のヘッダファイル
+#include "keyboard.h"			// キーボードの処理
+#include "FPS.h"				// FPSの処理
+
+// マクロ定義
+#define TAMA_DIV_MAX	4		// 弾の画像の最大数
 
 // 画像の構造体
 struct IMAGE
@@ -28,24 +31,24 @@ struct CHARACTOR
 // 動画の構造体
 struct MOVIE
 {
-	int handle = -1;		// 動画のハンドル
-	char path[255];			// 動画のパス
+	int handle = -1;			// 動画のハンドル
+	char path[255];				// 動画のパス
 
-	int x;					// X位置
-	int y;					// Y位置
-	int width;				// 幅
-	int height;				// 高さ
+	int x;						// X位置
+	int y;						// Y位置
+	int width;					// 幅
+	int height;					// 高さ
 
-	int Volume = 255;		// ボリューム(最小)0～255(最大)
+	int Volume = 255;			// ボリューム(最小)0～255(最大)
 };
 
 // 音楽の構造体
 struct AUDIO
 {
-	int handle = -1;		// 音楽のハンドル
-	char path[255];			// 音楽のパス
+	int handle = -1;			// 音楽のハンドル
+	char path[255];				// 音楽のパス
 
-	int Volume = -1;		// ボリューム(MIN 0 ～ 255 MAX)
+	int Volume = -1;			// ボリューム(MIN 0 ～ 255 MAX)
 	int playType = -1;		
 };
 
@@ -56,21 +59,27 @@ GAME_SCENE OldGameScene;		// 前回のゲームのシーン
 GAME_SCENE NextGameScene;		// 次のゲームのシーン
 
 // 画面の切り替え
-BOOL IsFadeOut = FALSE;		// フェードアウト
-BOOL IsFadeIn = FALSE;		// フェードイン
+BOOL IsFadeOut = FALSE;			// フェードアウト
+BOOL IsFadeIn = FALSE;			// フェードイン
 
-int fadeTimeMill = 2000;					// 切り替えミリ秒
-int fadeTimeMax = fadeTimeMill / 1000 * 60;	// ミリ秒をフレーム秒に変換
+int fadeTimeMill = 2000;						// 切り替えミリ秒
+int fadeTimeMax = fadeTimeMill / 1000 * 60;		// ミリ秒をフレーム秒に変換
 
 // フェードアウト
-int fadeOutCntInit = 0;				// 初期値
-int fadeOutCnt = fadeOutCntInit;	// フェードアウトのカウンタ
-int fadeOutCntMax = fadeTimeMax;	// フェードアウトのカウンタMAX
+int fadeOutCntInit = 0;							// 初期値
+int fadeOutCnt = fadeOutCntInit;				// フェードアウトのカウンタ
+int fadeOutCntMax = fadeTimeMax;				// フェードアウトのカウンタMAX
 
 // フェードイン
-int fadeInCntInit = fadeTimeMax;	// 初期値
-int fadeInCnt = fadeInCntInit;		// フェードインのカウンタ
-int fadeInCntMax = fadeTimeMax;				// フェードインのカウンタMAX
+int fadeInCntInit = fadeTimeMax;				// 初期値
+int fadeInCnt = fadeInCntInit;					// フェードインのカウンタ
+int fadeInCntMax = fadeTimeMax;					// フェードインのカウンタMAX
+
+// 弾の画像のハンドル
+int Tama[TAMA_DIV_MAX];
+int TamaIndex = 0;								// 画像の添え字
+int TamaChangeCnt = 0;							// 画像を変えるタイミング
+int TamaChangeCntMAX = 5;						// 画像を変えるタイミングMAX
 
 // プロトタイプ宣言
 VOID Title(VOID);			// タイトル画面
@@ -89,7 +98,7 @@ VOID Change(VOID);			// 切り替え画面
 VOID ChangeProc(VOID);		// 切り替え画面(処理)
 VOID ChangeDraw(VOID);		// 切り替え画面(描画)
 
-VOID ChangeScene(GAME_SCENE scene);		// シーン切り替え
+VOID ChangeScene(GAME_SCENE scene);				// シーン切り替え
 
 VOID CollUpdatePlayer(CHARACTOR* chara);		// 当たり判定の領域を更新
 VOID CollUpdate(CHARACTOR* chara);				// 当たり判定
@@ -98,12 +107,11 @@ BOOL OnCollRect(RECT a, RECT b);				// 矩形と矩形の当たり判定
 
 BOOL GameLoad(VOID);							// ゲームのデータの読み込み
 
-BOOL LoadImageMem(IMAGE* image, const char* path);
-// ゲームの画像を読み込み
-BOOL LoadAudio(AUDIO* audio, const char* path, int volume, int playType);
-// ゲームの音楽を読み込み
+BOOL LoadImageMem(IMAGE* image, const char* path);										// ゲームの画像を読み込み
+BOOL LoadAudio(AUDIO* audio, const char* path, int volume, int playType);				// ゲームの音楽を読み込み
+BOOL LoadImageDivMem(int* handle, const char* path, int bunkatuyoko, int bunkatutate);	// ゲームの画像の分割読み込み
 
-VOID GameInit(VOID);							// ゲームのデータの初期化
+VOID GameInit(VOID);																	// ゲームのデータの初期化
 
 // プログラムは WinMain から始まります
 // windowsのプログラミング方法 = (WinAPI)で動いている！
@@ -214,6 +222,9 @@ int WINAPI WinMain(
 		
 	}
 
+	// 読み込んだ画像を開放
+	for (int i = 0; i < TAMA_DIV_MAX; i++) { DeleteGraph(Tama[i]); }
+
 	// ＤＸライブラリ使用の終了処理
 	DxLib_End();
 
@@ -226,6 +237,71 @@ int WINAPI WinMain(
 /// <returns>読み込めたらTRUE / 読み込めなかったらFALSE</returns>
 BOOL GameLoad(VOID)
 {
+	// 画像を分割して読み込み
+	if (LoadImageDivMem(&Tama[0], ".\\image\\tama.png", 4, 1) == FALSE) { return FALSE; }
+
+	return TRUE;						// 全て読み込み成功
+}
+
+/// <summary>
+/// 画像を分割してメモリに読み込み
+/// </summary>
+/// <param name="handle">ハンドル配列の先頭アドレス</param>
+/// <param name="path">画像のパス</param>
+/// <param name="bunkatuyoko">分割するときの横の数</param>
+/// <param name="bunkarutate">分割するときの縦の数</param>
+/// <returns></returns>
+BOOL LoadImageDivMem(int* handle, const char* path, int bunkatuyoko, int bunkatutate)
+{
+	// 弾の読み込み
+	int IsTamaLoad = -1;									// 画像が読み込めたか
+
+	// 一時的に画像のハンドルを用意する
+	int TamaHandle = LoadGraph(path);
+
+	// 読み込みエラー
+	if (TamaHandle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),							// ウィンドウハンドル
+			path,											// 本文
+			"画像読み込みエラー",							// タイトル
+			MB_OK											// ボタン
+		);
+
+		return FALSE;										// 読み込み失敗
+	}
+
+	// 画像の幅と高さを取得
+	int Tamawidth = -1;										// 幅
+	int Tamaheight = -1;									// 高さ
+	GetGraphSize(TamaHandle, &Tamawidth, &Tamaheight);
+
+	// 分割して読み込み
+	IsTamaLoad = LoadDivGraph(
+		path,												// 画像のパス
+		TAMA_DIV_MAX,										// 分割総数
+		4, 1,												// 横の分割,縦の分割
+		Tamawidth / bunkatuyoko, Tamaheight / bunkatutate,	// 画像一つ分の幅,高さ
+		handle												// 連続で管理する配列の先頭アドレス
+	);
+
+	// 分割エラー
+	if (IsTamaLoad == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),							// ウィンドウハンドル
+			path,											// 本文
+			"画像分割エラー",								// タイトル
+			MB_OK											// ボタン
+		);
+
+		return FALSE;										// 読み込み失敗
+	}
+
+	// 一時的に読み込んだハンドルを開放
+	DeleteGraph(TamaHandle);
+
 	return TRUE;
 }
 
@@ -352,6 +428,27 @@ VOID TitleProc(VOID)
 /// </summary>
 VOID TitleDraw(VOID)
 {
+	DrawGraph(100, 100, Tama[TamaIndex], TRUE);
+
+	if (TamaChangeCnt < TamaChangeCntMAX) 
+	{
+		TamaChangeCnt++;
+	}
+	else
+	{
+		// 弾の添え字が弾の分割数の最大よりも小さいとき
+		if (TamaIndex < TAMA_DIV_MAX - 1)
+		{
+			TamaIndex++;
+		}
+		else
+		{
+			TamaIndex = 0;
+		}
+
+		TamaChangeCnt = 0;
+	}
+
 	DrawString(0, 0, "タイトル画面", GetColor(0, 0, 0));
 	return;
 }
