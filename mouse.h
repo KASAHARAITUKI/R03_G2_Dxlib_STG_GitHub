@@ -38,4 +38,5 @@ extern BOOL MouseUp(int MOUSE_INPUT_);						//ボタンを押し上げたか、マウスコード
 extern BOOL MouseDownKeep(int MOUSE_INPUT_, int milliTime);	//ボタンを押し続けているか、マウスコードで判断する
 extern BOOL MouseClick(int MOUSE_INPUT_);					//マウスをクリックしたか、マウスコードで判断する
 extern VOID MouseDraw(VOID);								//マウスの情報を描画する
-extern BOOL MouseMaruClick(MARU rect, int MOUSE_INPUT_);	//マウスが矩形領域をクリックしたか？
+extern BOOL MouseRectClick(RECT rect, int MOUSE_INPUT_);	//マウスが矩形領域をクリックしたか？
+extern BOOL MouseMaruClick(MARU circle, int MOUSE_INPUT_);	//マウスが円領域をクリックしたか？
