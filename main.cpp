@@ -3,6 +3,9 @@
 #include "keyboard.h"	//キーボードの処理
 #include "FPS.h"		//FPSの処理
 
+#include "mouse.h"		//マウスの処理
+#include "shape.h"		//図形の処理
+
 #include <math.h>		//数学
 
 //マクロ定義
@@ -31,7 +34,7 @@ struct IMAGE
 struct CHARACTOR
 {
 	IMAGE img;			//画像構造体
-	int speed = 5;		//移動速度	
+	int speed = 1;		//移動速度	
 	RECT coll;			//当たり判定の領域(四角)
 };
 
@@ -247,6 +250,9 @@ int WINAPI WinMain(
 
 		//キーボード入力の更新
 		AllKeyUpdate();
+
+		//マウス入力の更新
+		MouseUpdate();
 
 		//FPS値の更新
 		FPSUpdate();
@@ -599,6 +605,9 @@ VOID TitleProc(VOID)
 		//プレイ画面に切り替え
 		ChangeScene(GAME_SCENE_PLAY);
 
+		//マウスを描画しない
+		SetMouseDispFlag(FALSE);
+
 		return;
 	}
 
@@ -672,9 +681,13 @@ VOID PlayProc(VOID)
 		//プレイ画面に切り替え
 		ChangeScene(GAME_SCENE_END);
 
+		//マウスを描画する
+		SetMouseDispFlag(TRUE);
+
 		return;
 	}
 
+	/*
 	//プレイヤーを操作する
 	if (KeyDown(KEY_INPUT_LEFT) == TRUE)
 	{
@@ -707,12 +720,22 @@ VOID PlayProc(VOID)
 			player.img.y += player.speed;
 		}
 	}
+	*/
+
+	//マウスの位置にプレイヤーを置く
+	player.img.x = mouse.Point.x - player.img.width / 2;	//マウスの位置を画像の中心にする
+	player.img.y = mouse.Point.y - player.img.height / 2;	//マウスの位置を画像の中心にする
 
 	//プレイヤーの当たり判定を更新
 	CollUpdatePlayer(&player);
 
 	//スペースキーを押しているとき
+	/*
 	if (KeyDown(KEY_INPUT_SPACE) == TRUE)
+	*/
+
+	//マウスを左ボタンを押しているとき
+	if (MouseDown(MOUSE_INPUT_LEFT) == TRUE)
 	{
 		if (tamaShotCnt == 0)
 		{
@@ -919,6 +942,7 @@ VOID PlayDraw(VOID)
 	//敵の描画
 	for (int i = 0; i < TEKI_MAX; i++)
 	{
+		/*
 		if (teki[i].img.IsDraw == TRUE)
 		{
 			DrawGraph(teki[i].img.x, teki[i].img.y, teki[i].img.handle, TRUE);
@@ -931,6 +955,22 @@ VOID PlayDraw(VOID)
 				teki[i].coll.left, teki[i].coll.top, teki[i].coll.right, teki[i].coll.bottom,
 				GetColor(0, 0, 255), FALSE);
 		}
+		*/
+
+		//敵が描画できるときは
+		if (teki[i].img.IsDraw == TRUE)
+		{
+			DrawGraph(teki[i].img.x, teki[i].img.y, teki[i].img.handle, TRUE);
+
+			//当たり判定の描画
+			if (GAME_DEBUG == TRUE)
+			{
+				DrawBox(
+					teki[i].coll.left, teki[i].coll.top, teki[i].coll.right, teki[i].coll.bottom,
+					GetColor(0, 0, 255), FALSE);
+			}
+		}
+
 	}
 
 	//プレイヤーの描画
@@ -971,6 +1011,9 @@ VOID PlayDraw(VOID)
 	SetFontSize(40);			//フォントを大きくする
 	DrawFormatString(0, 100, GetColor(255, 255, 255), "SCORE:%05d", Score);
 	SetFontSize(old);			//フォントをもとに戻す
+
+	//マウスの位置を描画
+	MouseDraw();
 
 	DrawString(0, 0, "プレイ画面", GetColor(0, 0, 0));
 	return;

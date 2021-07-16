@@ -154,6 +154,8 @@
     <ClCompile Include="FPS.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mouse.cpp" />
+    <ClCompile Include="shape.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="game.ico" />
@@ -165,6 +167,8 @@
     <ClInclude Include="FPS.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="keyboard.h" />
+    <ClInclude Include="mouse.h" />
+    <ClInclude Include="shape.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
