@@ -127,6 +127,10 @@ struct TAMA tama[TAMA_MAX];	//実際に使う
 int tamaShotCnt = 0;
 int tamaShotCntMAX = 5;
 
+int PushEnterCnt = 0;				// カウンタ
+const int PushEnterCntMAX = 60;			// カウンタMAX値
+BOOL PushEnterBrink = FALSE;		// 点滅しているか?
+
 //プレイヤー
 CHARACTOR player;
 
@@ -138,6 +142,18 @@ CHARACTOR teki_moto[TEKI_KIND];
 
 //実際の敵データ
 CHARACTOR teki[TEKI_MAX];
+
+//音楽データ
+AUDIO TitleBGM;
+AUDIO PlayBGM;
+AUDIO EndBGM;
+
+//画像データ
+IMAGE TitleImage;
+IMAGE PushEnterImage;
+IMAGE ClearImage;
+IMAGE TitleBack;
+IMAGE ClearBack;
 
 //敵データのパス
 char tekiPath[TEKI_KIND][255] =
@@ -397,6 +413,16 @@ BOOL GameLoad(VOID)
 		teki_moto[i].img.IsDraw = FALSE;	//描画しません
 	}
 
+	if (LoadAudio(&TitleBGM, ".\\Audio\\title.mp3", 255, DX_PLAYTYPE_LOOP) == FALSE) { return FALSE; }
+	if (LoadAudio(&PlayBGM, ".\\Audio\\play.mp3", 255, DX_PLAYTYPE_LOOP) == FALSE) { return FALSE; }
+	if (LoadAudio(&EndBGM, ".\\Audio\\end.mp3", 255, DX_PLAYTYPE_LOOP) == FALSE) { return FALSE; }
+
+	if (LoadImageMem(&TitleImage, ".\\Image\\Title.png") == FALSE) { return FALSE; }
+	if (LoadImageMem(&TitleBack, ".\\Image\\TitleBack.jpg") == FALSE) { return FALSE; }
+	if (LoadImageMem(&PushEnterImage, ".\\Image\\PushEnter.png") == FALSE) { return FALSE; }
+	if (LoadImageMem(&ClearImage, ".\\Image\\Clear.png") == FALSE) { return FALSE; }
+	if (LoadImageMem(&ClearBack, ".\\Image\\ClearBack.jpg") == FALSE) { return FALSE; }
+
 	return TRUE;	//全て読み込みた！
 }
 
@@ -562,6 +588,29 @@ VOID GameInit(VOID)
 		teki_moto[i].img.IsDraw = FALSE;	//描画しません
 	}
 
+	// PushEnterの点滅
+	PushEnterCnt = 0;
+	PushEnterBrink = FALSE;
+
+	TitleImage.x = GAME_WIDTH / 2 - TitleImage.width / 2;
+	TitleImage.y = 100;
+	TitleImage.IsDraw = TRUE;
+
+	TitleBack.x = 0;
+	TitleBack.y = 0;
+	TitleBack.IsDraw = TRUE;
+
+	PushEnterImage.x = GAME_WIDTH / 2 - PushEnterImage.width / 2;
+	PushEnterImage.y = GAME_HEIGHT - PushEnterImage.height - 50;
+	PushEnterImage.IsDraw = TRUE;
+
+	ClearImage.x = GAME_WIDTH / 2 - ClearImage.width / 2;
+	ClearImage.y = GAME_HEIGHT / 2 - ClearImage.height / 2;
+	ClearImage.IsDraw = TRUE;
+
+	ClearBack.x = 0;
+	ClearBack.y = 0;
+	ClearBack.IsDraw = TRUE;
 }
 
 /// <summary>
@@ -593,9 +642,16 @@ VOID Title(VOID)
 /// </summary>
 VOID TitleProc(VOID)
 {
+	if (CheckSoundMem(TitleBGM.handle) == 0)
+	{
+		//BGMを流す
+		PlaySoundMem(TitleBGM.handle, TitleBGM.playType);
+	}
 
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
 	{
+		StopSoundMem(TitleBGM.handle);
+
 		//シーン切り替え
 		//次のシーンの初期化をここで行うと楽
 
@@ -619,8 +675,51 @@ VOID TitleProc(VOID)
 /// </summary>
 VOID TitleDraw(VOID)
 {
+	if (TitleBack.IsDraw == TRUE)
+	{
+		DrawGraph(TitleBack.x, TitleBack.y, TitleBack.handle, TRUE);
+	}
 
+	if (TitleImage.IsDraw == TRUE)
+	{
+		DrawGraph(TitleImage.x, TitleImage.y, TitleImage.handle, TRUE);
+	}
 
+	// MAX値まで待つ
+	if (PushEnterCnt < PushEnterCntMAX) { PushEnterCnt++; }
+	else
+	{
+		if (PushEnterBrink == TRUE)PushEnterBrink = FALSE;
+		else if (PushEnterBrink == FALSE)PushEnterBrink = TRUE;
+
+		PushEnterCnt = 0;	// カウンタを初期化
+	}
+
+	// PushEnterを点滅
+
+	if (PushEnterBrink == TRUE)
+	{
+		// 半透明にする
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, ((float)(PushEnterCnt) / PushEnterCntMAX) * 255);
+
+		// PushEnterの描画
+		DrawGraph(PushEnterImage.x, PushEnterImage.y, PushEnterImage.handle, TRUE);
+
+		// 半透明終了
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
+
+	if (PushEnterBrink == FALSE)
+	{
+		// 半透明にする
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, ((float)(PushEnterCntMAX - PushEnterCnt) / PushEnterCntMAX) * 255);
+
+		// PushEnterの描画
+		DrawGraph(PushEnterImage.x, PushEnterImage.y, PushEnterImage.handle, TRUE);
+
+		// 半透明終了
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
 
 	DrawString(0, 0, "タイトル画面", GetColor(0, 0, 0));
 	return;
@@ -676,8 +775,16 @@ VOID Play(VOID)
 /// </summary>
 VOID PlayProc(VOID)
 {
+	if (CheckSoundMem(PlayBGM.handle) == 0)
+	{
+		//BGMを流す
+		PlaySoundMem(PlayBGM.handle, PlayBGM.playType);
+	}
+
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
 	{
+		StopSoundMem(PlayBGM.handle);
+
 		//プレイ画面に切り替え
 		ChangeScene(GAME_SCENE_END);
 
@@ -1035,8 +1142,16 @@ VOID End(VOID)
 /// </summary>
 VOID EndProc(VOID)
 {
+	if (CheckSoundMem(EndBGM.handle) == 0)
+	{
+		//BGMを流す
+		PlaySoundMem(EndBGM.handle, EndBGM.playType);
+	}
+
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
 	{
+		StopSoundMem(EndBGM.handle);
+
 		//タイトル画面に切り替え
 		ChangeScene(GAME_SCENE_TITLE);
 
@@ -1051,6 +1166,16 @@ VOID EndProc(VOID)
 /// </summary>
 VOID EndDraw(VOID)
 {
+	if (ClearBack.IsDraw == TRUE)
+	{
+		DrawGraph(ClearBack.x, ClearBack.y, ClearBack.handle, TRUE);
+	}
+
+	if (ClearImage.IsDraw == TRUE)
+	{
+		DrawGraph(ClearImage.x, ClearImage.y, ClearImage.handle, TRUE);
+	}
+
 	DrawString(0, 0, "エンド画面", GetColor(0, 0, 0));
 	return;
 }
